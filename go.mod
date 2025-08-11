@@ -1,4 +1,4 @@
-module github.com/sermersys/tech
+module github.com/axshaman/sermersystech
 
 go 1.24.0
 
