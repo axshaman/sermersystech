@@ -77,15 +77,39 @@ func InitRedis() *redis.Client {
 	return rdb
 }
 
-func InitKafka() *kafka.Writer {
+type KafkaWriter interface {
+	WriteMessages(ctx context.Context, msgs ...kafka.Message) error
+	Close() error
+	TopicName() string
+}
+
+type kafkaWriterImpl struct {
+	writer *kafka.Writer
+	topic  string
+}
+
+func (k *kafkaWriterImpl) WriteMessages(ctx context.Context, msgs ...kafka.Message) error {
+	return k.writer.WriteMessages(ctx, msgs...)
+}
+
+func (k *kafkaWriterImpl) Close() error {
+	return k.writer.Close()
+}
+
+func (k *kafkaWriterImpl) TopicName() string {
+	return k.topic
+}
+
+func InitKafka() KafkaWriter {
 	brokers := os.Getenv("KAFKA_BROKERS")
 	if brokers == "" {
 		brokers = "kafka:9092"
 	}
 
+	topic := "api_gateway.events"
 	writer := &kafka.Writer{
 		Addr:     kafka.TCP(brokers),
-		Topic:    "api_gateway.events",
+		Topic:    topic,
 		Balancer: &kafka.LeastBytes{},
 	}
 
@@ -99,5 +123,9 @@ func InitKafka() *kafka.Writer {
 	defer conn.Close()
 
 	log.Printf("✅ Connected to Kafka at %s", brokers)
-	return writer
+
+	return &kafkaWriterImpl{
+		writer: writer,
+		topic:  topic,
+	}
 }
