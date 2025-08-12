@@ -13,13 +13,6 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-var redisClient *redis.Client
-
-// Установка Redis-клиента (должен вызываться в main.go)
-func SetRedisClient(client *redis.Client) {
-	redisClient = client
-}
-
 // RateLimitOptions задаёт параметры лимитирования
 type RateLimitOptions struct {
 	Limit     int                              // сколько попыток разрешено

@@ -6,20 +6,12 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 )
-
-var redisClient *redis.Client
-
-func SetRedisClient(client *redis.Client) {
-	redisClient = client
-}
 
 // IdempotencyMiddleware handles deduplication of incoming requests using Idempotency-Key header
 func IdempotencyMiddleware(ttl time.Duration) func(http.Handler) http.Handler {
