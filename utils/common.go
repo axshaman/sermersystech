@@ -1,11 +1,18 @@
 package utils
 
 import (
-	"math/rand"
-	"time"
+	"context"
 	"database/sql"
 	"fmt"
+	"log"
+	"math/rand"
+	"os"
+	"strconv"
 	"strings"
+	"time"
+	"github.com/redis/go-redis/v9"
+	"github.com/segmentio/kafka-go"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func GenerateRandomPassword(n int) string {
@@ -32,4 +39,80 @@ func GetObjectTypeID(db *sql.DB, name string) (int64, error) {
 		return 0, fmt.Errorf("object_type '%s' not found", name)
 	}
 	return id, nil
+}
+
+func InitDB() *sql.DB {
+	dsn := os.Getenv("MYSQL_DSN")
+	if dsn == "" {
+		log.Fatal("❌ MYSQL_DSN не установлен в переменных окружения")
+	}
+
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatalf("❌ Ошибка подключения к базе данных: %v", err)
+	}
+
+	log.Println("✅ Подключено к базе данных через MYSQL_DSN")
+	return db
+}
+
+func InitRedis() *redis.Client {
+	host := os.Getenv("REDIS_HOST")
+	if host == "" {
+		host = "redis:6379"
+	}
+
+	dbStr := os.Getenv("REDIS_DB")
+	db := 0
+	if dbStr != "" {
+		var err error
+		db, err = strconv.Atoi(dbStr)
+		if err != nil {
+			log.Printf("⚠️ Invalid REDIS_DB value '%s', using default 0", dbStr)
+			db = 0
+		}
+	}
+
+	password := os.Getenv("REDIS_PASSWORD")
+
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     host,
+		Password: password,
+		DB:       db,
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if _, err := rdb.Ping(ctx).Result(); err != nil {
+		log.Fatalf("❌ Failed to connect to Redis at %s: %v", host, err)
+	}
+
+	log.Printf("✅ Connected to Redis at %s (DB: %d)", host, db)
+	return rdb
+}
+
+func InitKafka() *kafka.Writer {
+	brokers := os.Getenv("KAFKA_BROKERS")
+	if brokers == "" {
+		brokers = "kafka:9092"
+	}
+
+	writer := &kafka.Writer{
+		Addr:     kafka.TCP(brokers),
+		Topic:    "api_gateway.events",
+		Balancer: &kafka.LeastBytes{},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	conn, err := kafka.DialContext(ctx, "tcp", brokers)
+	if err != nil {
+		log.Fatalf("❌ Failed to connect to Kafka at %s: %v", brokers, err)
+	}
+	defer conn.Close()
+
+	log.Printf("✅ Connected to Kafka at %s", brokers)
+	return writer
 }
