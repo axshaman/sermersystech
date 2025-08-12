@@ -9,8 +9,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-
-	"github.com/redis/go-redis/v9"
 )
 
 // IdempotencyMiddleware handles deduplication of incoming requests using Idempotency-Key header

@@ -10,7 +10,6 @@ import (
 	"time"
     "bytes"
     "io/ioutil"
-	"github.com/redis/go-redis/v9"
 )
 
 // RateLimitOptions задаёт параметры лимитирования
