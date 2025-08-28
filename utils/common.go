@@ -101,17 +101,17 @@ func (k *kafkaWriterImpl) TopicName() string {
 }
 
 func GetKafkaBrokers(env string) []string {
-	switch env {
-	case "local":
-		return []string{"localhost:9092", "host.docker.internal:9092"}
-	case "docker":
-		return []string{"kafka:9092", "host.docker.internal:9092", "localhost:9092"}
-	default:
-		if brokers := os.Getenv("KAFKA_BROKERS"); brokers != "" {
-			return strings.Split(brokers, ",")
-		}
-		return []string{"kafka:9092", "localhost:9092", "host.docker.internal:9092"}
-	}
+    if brokers := os.Getenv("KAFKA_BROKERS"); brokers != "" {
+        return strings.Split(brokers, ",")
+    }
+    switch env {
+    case "local":
+        return []string{"localhost:9092", "host.docker.internal:9092"}
+    case "docker":
+        return []string{"kafka:9092", "host.docker.internal:9092", "localhost:9092"}
+    default:
+        return []string{"kafka:9092", "localhost:9092", "host.docker.internal:9092"}
+    }
 }
 
 func InitKafka() KafkaWriter {
