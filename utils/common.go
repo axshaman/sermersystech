@@ -100,19 +100,24 @@ func (k *kafkaWriterImpl) TopicName() string {
 	return k.topic
 }
 
+func GetKafkaBrokers(env string) []string {
+	switch env {
+	case "local":
+		return []string{"localhost:9092", "host.docker.internal:9092"}
+	case "docker":
+		return []string{"kafka:9092", "host.docker.internal:9092", "localhost:9092"}
+	default:
+		if brokers := os.Getenv("KAFKA_BROKERS"); brokers != "" {
+			return strings.Split(brokers, ",")
+		}
+		return []string{"kafka:9092", "localhost:9092", "host.docker.internal:9092"}
+	}
+}
 func InitKafka() KafkaWriter {
 	// Список вариантов для подключения
-	var candidates []string
-	envBrokers := os.Getenv("KAFKA_BROKERS")
-	if envBrokers != "" {
-		candidates = append(candidates, envBrokers)
-	} else {
-		candidates = []string{
-			"kafka:9092",
-			"localhost:9092",
-			"host.docker.internal:9092",
-		}
-	}
+	env := os.Getenv("KAFKA_ENV") // например, "local" или "docker"
+	candidates := GetKafkaBrokers(env)
+
 
 	topic := "api_gateway.events"
 	var writer *kafka.Writer
