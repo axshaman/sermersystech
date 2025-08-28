@@ -113,8 +113,9 @@ func GetKafkaBrokers(env string) []string {
 		return []string{"kafka:9092", "localhost:9092", "host.docker.internal:9092"}
 	}
 }
+
 func InitKafka() KafkaWriter {
-	// Список вариантов для подключения
+	// Список вариантов
 	env := os.Getenv("KAFKA_ENV") // например, "local" или "docker"
 	candidates := GetKafkaBrokers(env)
 
