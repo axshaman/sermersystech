@@ -101,28 +101,48 @@ func (k *kafkaWriterImpl) TopicName() string {
 }
 
 func InitKafka() KafkaWriter {
-	brokers := os.Getenv("KAFKA_BROKERS")
-	if brokers == "" {
-		brokers = "kafka:9092"
+	// Список вариантов для подключения
+	var candidates []string
+	envBrokers := os.Getenv("KAFKA_BROKERS")
+	if envBrokers != "" {
+		candidates = append(candidates, envBrokers)
+	} else {
+		candidates = []string{
+			"kafka:9092",
+			"localhost:9092",
+			"host.docker.internal:9092",
+		}
 	}
 
 	topic := "api_gateway.events"
-	writer := &kafka.Writer{
-		Addr:     kafka.TCP(brokers),
-		Topic:    topic,
-		Balancer: &kafka.LeastBytes{},
+	var writer *kafka.Writer
+	var connectedBrokers string
+
+	for _, brokers := range candidates {
+		writer = &kafka.Writer{
+			Addr:     kafka.TCP(brokers),
+			Topic:    topic,
+			Balancer: &kafka.LeastBytes{},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		conn, err := kafka.DialContext(ctx, "tcp", brokers)
+		if err == nil {
+			conn.Close()
+			connectedBrokers = brokers
+			log.Printf("✅ Connected to Kafka at %s", brokers)
+			break
+		} else {
+			log.Printf("⚠️  Kafka not available at %s: %v", brokers, err)
+		}
+		writer = nil // сброс на случай ошибки
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	conn, err := kafka.DialContext(ctx, "tcp", brokers)
-	if err != nil {
-		log.Fatalf("❌ Failed to connect to Kafka at %s: %v", brokers, err)
+	if writer == nil {
+		log.Fatalf("❌ Failed to connect to any Kafka broker: %v", candidates)
 	}
-	defer conn.Close()
-
-	log.Printf("✅ Connected to Kafka at %s", brokers)
 
 	return &kafkaWriterImpl{
 		writer: writer,
