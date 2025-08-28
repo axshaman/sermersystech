@@ -119,9 +119,9 @@ func InitKafka() KafkaWriter {
 	env := os.Getenv("KAFKA_ENV") // например, "local" или "docker"
 	candidates := GetKafkaBrokers(env)
 
-
 	topic := "api_gateway.events"
 	var writer *kafka.Writer
+	var connectedBrokers string
 
 	for _, brokers := range candidates {
 		writer = &kafka.Writer{
