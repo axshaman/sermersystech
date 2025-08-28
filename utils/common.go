@@ -137,6 +137,7 @@ func InitKafka() KafkaWriter {
 		if err == nil {
 			conn.Close()
 			connectedBrokers = brokers
+			_ = connectedBrokers
 			log.Printf("✅ Connected to Kafka at %s", brokers)
 			break
 		} else {
