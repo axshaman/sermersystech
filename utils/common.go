@@ -122,7 +122,6 @@ func InitKafka() KafkaWriter {
 
 	topic := "api_gateway.events"
 	var writer *kafka.Writer
-	var connectedBrokers string
 
 	for _, brokers := range candidates {
 		writer = &kafka.Writer{
